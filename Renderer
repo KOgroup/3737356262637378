@@ -1,0 +1,628 @@
+public class GameRenderer {
+
+	// i is for array of colors, z and w are for array of texture for hs
+	private int i, z, w;
+
+	float add, addSecond;
+
+	private GameWorld world;
+	private Ball ball;
+	private ScrollHandler scroller;
+
+	// ball
+	public static final Color BLACKISH = new Color(44 / 255f, 57 / 255f,
+			68 / 255f, 1);
+	public static final Color BLUEISH1 = new Color(0 / 255f, 62 / 255f,
+			111 / 255f, 1);
+	public static final Color BLUEISH2 = new Color(47 / 255f, 179 / 255f,
+			240 / 255f, 1);
+	public static final Color GREENISH1 = new Color(141 / 255f, 205 / 255f,
+			173 / 255f, 1);
+	public static final Color GREENISH2 = new Color(10 / 255f, 178 / 255f,
+			93 / 255f, 1);
+	public static final Color GREENISH3 = new Color(116 / 255f, 231 / 255f,
+			60 / 255f, 1);
+	public static final Color ORANGEISH1 = new Color(225 / 255f, 182 / 255f,
+			10 / 255f, 1);
+	public static final Color ORANGEISH2 = new Color(216 / 255f, 208 / 255f,
+			37 / 255f, 1);
+	public static final Color REDISH1 = new Color(235 / 255f, 110 / 255f,
+			68 / 255f, 1);
+	public static final Color PURPLEISH1 = new Color(81 / 255f, 33 / 255f,
+			121 / 255f, 1);
+
+	// bg and pipe
+	public static final Color BLUEISH3 = new Color(61 / 255f, 170 / 255f,
+			158 / 255f, 1);
+	public static final Color BROWNISH1 = new Color(111 / 255f, 96 / 255f,
+			29 / 255f, 1);
+
+	public static final Color ORANGEISH3 = new Color(255 / 255f, 109 / 255f,
+			35 / 255f, 1);
+	public static final Color ORANGEISH4 = new Color(255 / 255f, 158 / 255f,
+			65 / 255f, 1);
+	public static final Color YELLOWISH1 = new Color(231 / 255f, 255 / 255f,
+			51 / 255f, 1);
+
+	public static final Color REDISH2 = new Color(220 / 255f, 32 / 255f,
+			23 / 255f, 1);
+
+	// objects
+	private TwoPipes pipe1, pipe2;
+	private Smasher smasher1, smasher2;
+	private Squeezer squeezer1, squeezer2;
+	private Specials maxi1, mini1;
+
+	//
+	private OrthographicCamera cam;
+	private ShapeRenderer shapeRenderer;
+	private SpriteBatch batcher;
+	private int midPointY;
+	private int gameHeight;
+
+	// assets
+	private TextureRegion highScoreTable, title, mini, maxi, helpOne, helpTwo, helpThree, smiley;
+	private TextureRegion color0, color1, color2, color3, color4, color5,
+			color6, color7, color8, color9, color10;
+	// button
+	private List<Buttons> menuButtons;
+
+	// arrays of colors for ball and objects
+	Color[] ballColors = { BLACKISH, BLUEISH1, BLUEISH2, GREENISH1, GREENISH2,
+			GREENISH3, ORANGEISH1, ORANGEISH2, REDISH1, PURPLEISH1 };
+
+	Color[] pipeColors = { Color.RED, ORANGEISH3, GREENISH3, ORANGEISH4,
+			YELLOWISH1, Color.WHITE, Color.LIGHT_GRAY, REDISH2, Color.WHITE,
+			GREENISH2 };
+
+	Color[] bgColors = { Color.WHITE, YELLOWISH1, Color.WHITE, BLUEISH3,
+			BROWNISH1, Color.BLACK, GREENISH1, Color.BLACK, BLUEISH1,
+			Color.TEAL };
+
+	// Tween
+	private TweenManager manager;
+	private Value alpha = new Value();
+
+	private Color transitionColor;
+
+	private TextureRegion[] coloredCircle;
+
+
+	public GameRenderer(GameWorld world, int gameHeight, int midPointY) {
+		this.world = world;
+		this.midPointY = midPointY;
+		this.gameHeight = gameHeight;
+		this.menuButtons = ((InputHandler) Gdx.input.getInputProcessor())
+				.getMenuButtons();
+
+		cam = new OrthographicCamera();
+		cam.setToOrtho(true, 768, gameHeight);
+
+		shapeRenderer = new ShapeRenderer();
+		shapeRenderer.setProjectionMatrix(cam.combined);
+		batcher = new SpriteBatch();
+		batcher.setProjectionMatrix(cam.combined);
+
+		initAssets();
+		initGameObjects();
+		transitionColor = new Color();
+		prepareTransition(141, 205, 193, 1f);
+
+		w = 0;
+		z = 0;
+		i = 1;
+		add = 0;
+		addSecond = 0;
+
+
+		coloredCircle = new TextureRegion[] { color0, color1, color2, color3,
+				color4, color5, color6, color7, color8, color9, color10 };
+
+	}
+
+	private void initAssets() {
+		highScoreTable = AssetLoader.highscoreTable;
+		title = AssetLoader.title;
+		mini = AssetLoader.mini;
+		maxi = AssetLoader.maxi;
+		helpOne = AssetLoader.helpOne;
+		helpTwo = AssetLoader.helpTwo;
+		helpThree = AssetLoader.helpThree;
+	
+		smiley = AssetLoader.smiley;
+
+		color0 = AssetLoader.color0;
+		color1 = AssetLoader.color1;
+		color2 = AssetLoader.color2;
+		color3 = AssetLoader.color3;
+		color4 = AssetLoader.color4;
+		color5 = AssetLoader.color5;
+		color6 = AssetLoader.color6;
+		color7 = AssetLoader.color7;
+		color8 = AssetLoader.color8;
+		color9 = AssetLoader.color9;
+		color10 = AssetLoader.color10;
+
+	}
+
+	private void initGameObjects() {
+		scroller = world.getScroller();
+		ball = world.getBall();
+
+		pipe1 = scroller.getPipe1();
+		smasher1 = scroller.getSmasher1();
+		squeezer1 = scroller.getSquezzer1();
+
+		pipe2 = scroller.getPipe2();
+		smasher2 = scroller.getSmasher2();
+		squeezer2 = scroller.getSquezzer2();
+
+		maxi1 = scroller.getMaxi1();
+		mini1 = scroller.getMini1();
+
+	}
+
+	private void drawMenuUI() {
+		batcher.begin();
+		batcher.enableBlending();
+
+		menuButtons.get(0).drawBoth(batcher);
+
+		batcher.draw(title, 768 / 2 - 300, 100, 600, 127);
+
+		// draw sound, help, music, fb icon
+
+		menuButtons.get(5).drawSound(batcher, AssetLoader.getSound());
+
+		menuButtons.get(6).drawOne(batcher);
+		menuButtons.get(7).drawOne(batcher);
+
+		menuButtons.get(8).drawSound(batcher, AssetLoader.getMusic());
+
+		batcher.end();
+
+	}
+
+	private void drawHelp() {
+		shapeRenderer.begin(ShapeType.Filled);
+
+		shapeRenderer.end();
+		batcher.begin();
+		batcher.enableBlending();
+		
+		AssetLoader.font.draw(batcher, "1. Moving", 10, 80);
+		batcher.draw(helpOne, 384-200, 140, 400, 360);
+		
+		AssetLoader.font.draw(batcher,  "2. Power ups (Survival Mode only)", 10, midPointY+20);
+		batcher.draw(helpTwo, 10, midPointY+80, 750, 345);
+		
+		
+		batcher.end();
+
+	}
+
+	private void drawGameModeUI(float delta) {
+
+		batcher.begin();
+		batcher.enableBlending();
+
+		// survival
+		if (add < AssetLoader.getHighScoreSur()) {
+			add += AssetLoader.getHighScoreSur() / 150;
+
+			if (add > world.getScoreBounds()[z] && z < 10) {
+				z += 1;
+
+			}
+		}
+
+		if (addSecond < AssetLoader.getHighScoreTime()) {
+			addSecond += (float) AssetLoader.getHighScoreTime() / 110;
+
+			if (addSecond > 10 * w && w < 10) {
+				w += 1;
+
+			}
+		}
+
+		batcher.draw(coloredCircle[z], 134, midPointY / 2 - 250, 500, 500);
+		// time
+		batcher.draw(coloredCircle[w], 134, midPointY * 3 / 2 - 250, 500, 500);
+
+		menuButtons.get(3).drawOne(batcher);
+		menuButtons.get(4).drawOne(batcher);
+
+		batcher.end();
+
+	}
+
+	private void drawHighScoreUI(float delta) {
+		shapeRenderer.begin(ShapeType.Filled);
+		Gdx.graphics.getGL20().glEnable(GL20.GL_BLEND);
+		Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+		shapeRenderer.setColor(0, 0, 0, 0.1f);
+		shapeRenderer.rect(0, 0, 768, gameHeight);
+
+		shapeRenderer.end();
+		batcher.begin();
+
+		batcher.draw(coloredCircle[z], 134, midPointY, 500, 500);
+
+		batcher.draw(highScoreTable, 234, midPointY + 100, 300, 300);
+
+		if (world.isTimeMode()) {
+			int length2 = ("" + AssetLoader.getHighScoreTime()).length() * 11;
+			AssetLoader.font.draw(batcher, "" + AssetLoader.getHighScoreTime(),
+					(768 / 2) - length2, midPointY + 310);
+			addingScore(10 * z);
+		}
+
+		else if (!world.isTimeMode()) {
+			int length2 = ("" + AssetLoader.getHighScoreSur()).length() * 11;
+			AssetLoader.font.draw(batcher, "" + AssetLoader.getHighScoreSur(),
+					(768 / 2) - length2, midPointY + 310);
+			addingScore(world.getScoreBounds()[z]);
+
+		}
+		menuButtons.get(1).drawOne(batcher);
+		menuButtons.get(2).drawOne(batcher);
+
+		batcher.end();
+
+	}
+
+	private void drawRunningUI() {
+		// ball
+		shapeRenderer.begin(ShapeType.Filled);
+		shapeRenderer.setColor(ballColors[i - 1]);
+		shapeRenderer.circle(ball.getBall().x, ball.getBall().y,
+				ball.getBall().radius, 500);
+
+		// Two way pipes
+		shapeRenderer.setColor(pipeColors[i - 1]);
+		shapeRenderer.rect(pipe1.getBarLeft().x, pipe1.getBarLeft().y,
+				pipe1.getBarLeft().width, pipe1.getBarLeft().height);
+		shapeRenderer.rect(pipe1.getBarRight().x, pipe1.getBarRight().y,
+				pipe1.getBarRight().width, pipe1.getBarRight().height);
+		shapeRenderer.rect(pipe2.getBarLeft().x, pipe2.getBarLeft().y,
+				pipe2.getBarLeft().width, pipe2.getBarLeft().height);
+		shapeRenderer.rect(pipe2.getBarRight().x, pipe2.getBarRight().y,
+				pipe2.getBarRight().width, pipe2.getBarRight().height);
+
+		// smasher
+
+		shapeRenderer.rect(smasher1.getSmasherRect().x,
+				smasher1.getSmasherRect().y, smasher1.getSmasherRect().width,
+				smasher1.getSmasherRect().height);
+
+		shapeRenderer.rect(smasher2.getSmasherRect().x,
+				smasher2.getSmasherRect().y, smasher2.getSmasherRect().width,
+				smasher2.getSmasherRect().height);
+
+		if (scroller.getSmasher1().getA() == 1) {
+			shapeRenderer.triangle(
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width,
+					smasher1.getSmasherRect().y, smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 3,
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width + 30,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 6);
+			shapeRenderer.triangle(
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 3,
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 3 * 2,
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width + 30,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 2);
+			shapeRenderer.triangle(
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 3 * 2,
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height,
+					smasher1.getSmasherRect().x
+							+ smasher1.getSmasherRect().width + 30,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 6 * 5);
+
+		}
+
+		else {
+			shapeRenderer.triangle(smasher1.getSmasherRect().x,
+					smasher1.getSmasherRect().y, smasher1.getSmasherRect().x,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 3,
+					smasher1.getSmasherRect().x - 30,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 6);
+			shapeRenderer.triangle(smasher1.getSmasherRect().x,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 3,
+					smasher1.getSmasherRect().x, smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height * 2 / 3,
+					smasher1.getSmasherRect().x - 30,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height / 2);
+			shapeRenderer.triangle(smasher1.getSmasherRect().x,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height * 2 / 3,
+					smasher1.getSmasherRect().x, smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height,
+					smasher1.getSmasherRect().x - 30,
+					smasher1.getSmasherRect().y
+							+ smasher1.getSmasherRect().height * 5 / 6);
+
+		}
+		if (scroller.getSmasher2().getA() == 1) {
+
+			shapeRenderer.triangle(
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width,
+					smasher2.getSmasherRect().y, smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 3,
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width + 30,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 6);
+			shapeRenderer.triangle(
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 3,
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 3 * 2,
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width + 30,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 2);
+			shapeRenderer.triangle(
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 3 * 2,
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height,
+					smasher2.getSmasherRect().x
+							+ smasher2.getSmasherRect().width + 30,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 6 * 5);
+
+		}
+
+		else {
+			shapeRenderer.triangle(smasher2.getSmasherRect().x,
+					smasher2.getSmasherRect().y, smasher2.getSmasherRect().x,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 3,
+					smasher2.getSmasherRect().x - 30,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 6);
+			shapeRenderer.triangle(smasher2.getSmasherRect().x,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 3,
+					smasher2.getSmasherRect().x, smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height * 2 / 3,
+					smasher2.getSmasherRect().x - 30,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height / 2);
+			shapeRenderer.triangle(smasher2.getSmasherRect().x,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height * 2 / 3,
+					smasher2.getSmasherRect().x, smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height,
+					smasher2.getSmasherRect().x - 30,
+					smasher2.getSmasherRect().y
+							+ smasher2.getSmasherRect().height * 5 / 6);
+
+		}
+
+		// squeezer
+		shapeRenderer.rect(squeezer1.getBarLeft().x, squeezer1.getBarLeft().y,
+				squeezer1.getBarLeft().width, squeezer1.getBarLeft().height);
+		shapeRenderer.rect(squeezer1.getBarRight().x,
+				squeezer1.getBarRight().y, squeezer1.getBarRight().width,
+				squeezer1.getBarRight().height);
+		shapeRenderer.rect(squeezer2.getBarLeft().x, squeezer2.getBarLeft().y,
+				squeezer2.getBarLeft().width, squeezer2.getBarLeft().height);
+		shapeRenderer.rect(squeezer2.getBarRight().x,
+				squeezer2.getBarRight().y, squeezer2.getBarRight().width,
+				squeezer2.getBarRight().height);
+
+		shapeRenderer.end();
+		shapeRenderer.begin(ShapeType.Filled);
+		shapeRenderer.setColor(Color.WHITE);
+
+		shapeRenderer.setColor(Color.GRAY);
+
+		shapeRenderer.rect(0, pipe1.getBarLeft().y, 20,
+				pipe1.getBarLeft().height);
+		shapeRenderer.rect(768 - 20, pipe1.getBarRight().y, 20,
+				pipe1.getBarRight().height);
+		shapeRenderer.rect(0, squeezer1.getBarLeft().y, 20,
+				squeezer1.getBarRight().height);
+		shapeRenderer.rect(768 - 20, squeezer1.getBarRight().y, 20,
+				squeezer1.getBarRight().height);
+
+		shapeRenderer.rect(0, pipe2.getBarLeft().y, 20,
+				pipe2.getBarLeft().height);
+		shapeRenderer.rect(768 - 20, pipe2.getBarRight().y, 20,
+				pipe2.getBarRight().height);
+		shapeRenderer.rect(0, squeezer2.getBarLeft().y, 20,
+				squeezer2.getBarRight().height);
+		shapeRenderer.rect(768 - 20, squeezer2.getBarRight().y, 20,
+				squeezer2.getBarRight().height);
+
+		if (scroller.getSmasher1().getA() == 1) {
+			shapeRenderer.rect(0, smasher1.getSmasherRect().y, 20,
+					smasher1.getSmasherRect().height);
+
+		}
+
+		else {
+			shapeRenderer.rect(768 - 20, smasher1.getSmasherRect().y, 20,
+					smasher1.getSmasherRect().height);
+		}
+
+		if (scroller.getSmasher2().getA() == 1) {
+
+			shapeRenderer.rect(0, smasher2.getSmasherRect().y, 20,
+					smasher2.getSmasherRect().height);
+
+		}
+
+		else {
+			shapeRenderer.rect(768 - 20, smasher2.getSmasherRect().y, 20,
+					smasher2.getSmasherRect().height);
+		}
+
+		if (!world.isTimeMode() && i == 6 || i == 8) {
+			shapeRenderer.setColor(ballColors[i - 1]);
+			shapeRenderer.circle(maxi1.getBounds().x, maxi1.getBounds().y,
+					maxi1.getBounds().radius);
+
+			shapeRenderer.circle(mini1.getBounds().x, mini1.getBounds().y,
+					mini1.getBounds().radius);
+		}
+		shapeRenderer.end();
+
+		batcher.begin();
+		batcher.enableBlending();
+
+		
+		if (!world.isTimeMode()){
+		batcher.draw(maxi, maxi1.getX(), maxi1.getY(), maxi1.getWidth(),
+				maxi1.getHeight());
+		batcher.draw(mini, mini1.getX(), mini1.getY(), mini1.getWidth(),
+				mini1.getHeight());
+		}
+		String score = world.getScore() + "";
+
+		AssetLoader.font.draw(batcher, "" + world.getScore(), (768 / 2)
+				- (13 * score.length()), 20);
+		batcher.end();
+
+	}
+
+	public void render(float delta, float runTime) {
+		int a = batcher.renderCalls;
+		
+		if (i < 10) {
+			i = world.getI();
+		} 
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		shapeRenderer.begin(ShapeType.Filled);
+
+		// bg
+		shapeRenderer.setColor(bgColors[i - 1]);
+		shapeRenderer.rect(0, 0, 768, gameHeight);
+		shapeRenderer.end();
+
+		switch (world.currentState()) {
+		case MENU:
+			drawMenuUI();
+			break;
+
+		case GAMEMODE:
+			drawGameModeUI(delta);
+			break;
+
+		case READY:
+			batcher.begin();
+			batcher.setColor(1, 1, 1, .4f);
+			batcher.draw(helpThree, 384-165, midPointY+120, 330, 59);
+			batcher.setColor(1, 1, 1, 1);
+			batcher.end();
+		case RUNNING:
+
+			drawRunningUI();
+			break;
+		case HIGHSCORE:
+			drawRunningUI();
+			drawHighScoreUI(delta);
+
+			break;
+
+		case HELP:
+			drawHelp();
+			break;
+		default:
+			break;
+		}
+
+		shapeRenderer.end();
+		drawTransition(delta);
+
+	}
+
+	public void prepareTransition(int r, int g, int b, float duration) {
+		transitionColor.set(r / 255.0f, g / 255.0f, b / 255.0f, 1);
+		alpha.setValue(1);
+		Tween.registerAccessor(Value.class, new ValueAccessor());
+		manager = new TweenManager();
+		Tween.to(alpha, -1, duration).target(0)
+				.ease(TweenEquations.easeOutQuad).start(manager);
+	}
+
+	private void drawTransition(float delta) {
+		if (alpha.getValue() > 0) {
+			manager.update(delta);
+			Gdx.gl.glEnable(GL20.GL_BLEND);
+			Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+			shapeRenderer.begin(ShapeType.Filled);
+			shapeRenderer.setColor(transitionColor.r, transitionColor.g,
+					transitionColor.b, alpha.getValue());
+			shapeRenderer.rect(0, 0, 768, gameHeight);
+			shapeRenderer.end();
+			Gdx.gl.glDisable(GL20.GL_BLEND);
+
+		}
+	}
+
+	private void addingScore(float scoreBounds) {
+		int length = ("" + world.getScore()).length() * 11;
+
+		if (add < world.getScore()) {
+			add += (float) world.getScore() / 160;
+
+			AssetLoader.font.draw(batcher, "" + (int) add, (768 / 2) - length,
+					midPointY + 200);
+			if (add > scoreBounds && z < 10) {
+				z += 1;
+			}
+		} else {
+			AssetLoader.font.draw(batcher, "" + world.getScore(), (768 / 2)
+					- length, midPointY + 200);
+
+		}
+
+	}
+
+
+	public void setZero(){
+		i=0;
+		w=0;
+		z=0;
+		add=0;
+		addSecond=0;
+	}
+}
