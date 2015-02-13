@@ -1,0 +1,227 @@
+public class InputHandler implements InputProcessor {
+
+	private Ball ball;
+	private GameWorld world;
+
+	private float scaleFactorX;
+	private float scaleFactorY;
+
+	private List<Buttons> menuButtons;
+
+	private Buttons playButton, replayButton, menuButton, timeButton,
+			survivalButton, soundButton, fbButton, helpButton, musicButton;
+
+	public InputHandler(GameWorld world, float scaleFactorX, float scaleFactorY) {
+		this.world = world;
+		ball = world.getBall();
+		int midPointY = world.getMidPointY();
+		this.scaleFactorX = scaleFactorX;
+		this.scaleFactorY = scaleFactorY;
+
+		menuButtons = new ArrayList<Buttons>();
+		playButton = new Buttons(768 / 2 - 300, midPointY - 300, 600, 600,
+				AssetLoader.playCircle, AssetLoader.playCircle2); 
+		menuButton = new Buttons(40, 100, 300, 300, AssetLoader.menuButton);
+		replayButton = new Buttons(768 - 40 - 300, 100, 300, 300,
+				AssetLoader.replayButton);
+		survivalButton = new Buttons(768 / 2 - 145, midPointY / 2 - 125, 290,
+				250, AssetLoader.SurvivalModeButton);
+		timeButton = new Buttons(768 / 2 - 140, midPointY * 3 / 2 - 140, 280,
+				280, AssetLoader.TimeTrialButton);
+		soundButton = new Buttons(658, midPointY * 2 - 110, 100, 100,
+				AssetLoader.unmuteButton, AssetLoader.muteButton);
+		fbButton = new Buttons(10, midPointY * 2 - 110, 100, 100,
+				AssetLoader.fbButton);
+		helpButton = new Buttons(10, midPointY * 2 - 220, 100, 100,
+				AssetLoader.helpButton);
+
+		musicButton = new Buttons(658, midPointY * 2 - 220, 100, 100,
+				AssetLoader.musicButton, AssetLoader.musicMuteButton);
+
+		menuButtons.add(playButton); // 0
+		menuButtons.add(replayButton); // 1
+		menuButtons.add(menuButton); // 2
+		menuButtons.add(timeButton); // 3
+		menuButtons.add(survivalButton); // 4
+		menuButtons.add(soundButton); // 5
+		menuButtons.add(fbButton); // 6
+		menuButtons.add(helpButton); // 7
+		menuButtons.add(musicButton); // 8
+
+		Gdx.input.setCatchBackKey(true);
+
+	}
+
+	@Override
+	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+		screenX = scaleX(screenX);
+		screenY = scaleY(screenY);
+
+		switch (world.currentState()) {
+		case MENU:
+			playButton.isTouchDown(screenX, screenY);
+			fbButton.isTouchDown(screenX, screenY);
+			helpButton.isTouchDown(screenX, screenY);
+
+			if (soundButton.isTouchDown(screenX, screenY)) {
+				AssetLoader.setSound(!AssetLoader.getSound());
+
+				if (AssetLoader.getSound()) {
+					AssetLoader.setVOLUMESOUND(1f);
+				} else {
+					AssetLoader.setVOLUMESOUND(0);
+				}
+			}
+			
+			else if (musicButton.isTouchDown(screenX, screenY)) {
+				AssetLoader.setMusic(!AssetLoader.getMusic());
+
+				if (AssetLoader.getMusic()) {
+					AssetLoader.setVOLUMEMUSIC(1f);
+				} else {
+					AssetLoader.setVOLUMEMUSIC(0);
+				}
+				AssetLoader.bgMusic.setVolume(AssetLoader.getVOLUMEMUSIC());
+			}
+			break;
+
+		case GAMEMODE:
+			timeButton.isTouchDown(screenX, screenY);
+			survivalButton.isTouchDown(screenX, screenY);
+			break;
+
+		case READY:
+			world.start();
+			ball.onClick(screenX);
+			break;
+		case RUNNING:
+			ball.onClick(screenX);
+			break;
+		case HIGHSCORE:
+			menuButton.isTouchDown(screenX, screenY);
+			replayButton.isTouchDown(screenX, screenY);
+			break;
+
+		case HELP:
+			world.menu();
+			break;
+		default:
+			break;
+		}
+
+		return true;
+	}
+
+	@Override
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+		screenX = scaleX(screenX);
+		screenY = scaleY(screenY);
+
+		switch (world.currentState()) {
+		case MENU:
+			if (playButton.isTouchUp(screenX, screenY, AssetLoader.click)) {
+				world.mode();
+				return true;
+			} else if (fbButton.isTouchUp(screenX, screenY, AssetLoader.click)) {
+				Gdx.net.openURI("https://sl-si.facebook.com/");
+				return true;
+			} else if (helpButton
+					.isTouchUp(screenX, screenY, AssetLoader.click)) {
+				world.help();
+				return true;
+			}
+			break;
+
+		case GAMEMODE:
+			if (timeButton.isTouchUp(screenX, screenY, AssetLoader.click)) {
+				world.ready();
+				world.setTimeMode(true);
+				
+				return true;
+			} else if (survivalButton.isTouchUp(screenX, screenY,
+					AssetLoader.click)) {
+				world.ready();
+				world.setTimeMode(false);
+				return true;
+
+			}
+			break;
+
+		case READY:
+		case RUNNING:
+			break;
+		case HIGHSCORE:
+			if (menuButton.isTouchUp(screenX, screenY, AssetLoader.click)) {
+				world.restart();
+				world.menu();
+				return true;
+			} else if (replayButton.isTouchUp(screenX, screenY,
+					AssetLoader.click)) {
+				world.restart();
+
+				return true;
+
+			}
+			break;
+
+		case HELP:
+			break;
+		default:
+			break;
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean keyDown(int keycode) {
+
+		return false;
+	}
+
+	@Override
+	public boolean keyUp(int keycode) {
+		if (keycode == Keys.BACK && (world.isGameMode() || world.isHelp())) {
+			world.menu();
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean keyTyped(char character) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean mouseMoved(int screenX, int screenY) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean scrolled(int amount) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	private int scaleX(int screenX) {
+		return (int) (screenX / scaleFactorX);
+	}
+
+	private int scaleY(int screenY) {
+		return (int) (screenY / scaleFactorY);
+	}
+
+	public List<Buttons> getMenuButtons() {
+		return menuButtons;
+	}
+
+}
